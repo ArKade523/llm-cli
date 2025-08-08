@@ -2,6 +2,8 @@
 
 A terminal-based AI chat interface built with React 18, Ink, and Deno that provides interactive conversations with OpenAI's GPT models and includes MCP (Model Context Protocol) tool support.
 
+![AI CLI Chat Demo](docs/list_files.png)
+
 ## Features
 
 - **Interactive Chat Interface** - Real-time conversations with AI

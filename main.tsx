@@ -25,12 +25,69 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [exitPressCount, setExitPressCount] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string>("Press Enter to send messages");
+  const [systemPrompt, setSystemPrompt] = useState<string>("");
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
   
   const openai = new OpenAI({
     apiKey: Deno.env.get("OPENAI_API_KEY"),
   });
 
+  // Load system prompt from file
+  useEffect(() => {
+    const loadSystemPrompt = async () => {
+      try {
+        const prompt = await Deno.readTextFile("prompt.txt");
+        setSystemPrompt(prompt);
+      } catch (error) {
+        console.warn("Could not load prompt.txt, using default prompt");
+        setSystemPrompt("You are a helpful assistant with access to tools for file operations, directory listing, and shell commands. Use tools when the user asks for file operations or system tasks.");
+      }
+    };
+    loadSystemPrompt();
+  }, []);
+
+  // Timer effect for response duration
+  useEffect(() => {
+    let interval: number;
+    if (isLoading && responseStartTime) {
+      interval = setInterval(() => {
+        setElapsedTime(Date.now() - responseStartTime);
+      }, 100);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isLoading, responseStartTime]);
+
   useInput((input, key) => {
+    // Handle up arrow for command history
+    if (key.upArrow && !isLoading) {
+      if (commandHistory.length > 0) {
+        const newIndex = historyIndex === -1 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1);
+        setHistoryIndex(newIndex);
+        setInput(commandHistory[newIndex]);
+      }
+      return;
+    }
+    
+    // Handle down arrow for command history
+    if (key.downArrow && !isLoading) {
+      if (historyIndex >= 0) {
+        const newIndex = historyIndex + 1;
+        if (newIndex >= commandHistory.length) {
+          setHistoryIndex(-1);
+          setInput("");
+        } else {
+          setHistoryIndex(newIndex);
+          setInput(commandHistory[newIndex]);
+        }
+      }
+      return;
+    }
+
     if (key.ctrl && input.toLowerCase() === 'c') {
       setInput("")
       setExitPressCount((prev: number) => prev + 1);
@@ -65,22 +122,29 @@ function App() {
   const handleSubmit = async (value: string) => {
     if (!value.trim() || isLoading) return;
 
+    // Add to command history
+    const trimmedValue = value.trim();
+    setCommandHistory((prev: string[]) => [...prev, trimmedValue]);
+    setHistoryIndex(-1);
+
     const userMessage: Message = {
       id: messages.length + 1,
       role: "user",
-      content: value.trim(),
+      content: trimmedValue,
       timestamp: new Date(),
     };
 
     setMessages((prev: Message[]) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setResponseStartTime(Date.now());
+    setElapsedTime(0);
 
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-5",
         messages: [
-          { role: "system", content: "You are a helpful assistant with access to tools for file operations, directory listing, and shell commands. Use tools when the user asks for file operations or system tasks." },
+          { role: "system", content: systemPrompt },
           ...messages.map((msg: Message) => ({ 
             role: msg.role, 
             content: msg.content 
@@ -145,6 +209,7 @@ function App() {
       setMessages((prev: Message[]) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      setResponseStartTime(null);
     }
   };
 
@@ -167,7 +232,9 @@ function App() {
           {isLoading && (
             <Box>
               <Text color="#ff9955" bold>AI: </Text>
-              <Text color="#ff9955">Thinking...</Text>
+              <Text color="#ff9955">
+                Thinking... ({(elapsedTime / 1000).toFixed(1)}s)
+              </Text>
             </Box>
           )}
         </Box>

@@ -135,7 +135,7 @@ The terminal interface uses Ink components. Key components:
 **"Permission denied" errors**
 - Ensure you're running with appropriate Deno permissions:
   ```bash
-  deno run --allow-env --allow-read --allow-write --allow-net main.tsx
+  deno run --allow-env --allow-run --allow-read --allow-write --allow-net main.tsx
   ```
 
 **API key errors**

@@ -78,6 +78,20 @@ export const mcpTools: MCPTool[] = [
       },
       required: ["command"]
     }
+  },
+  {
+    name: "finished",
+    description: "REQUIRED: Call this tool when you have completed your response and want to transfer control back to the user. This must be called at the end of every interaction.",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: {
+          type: "string",
+          description: "A brief summary of what you accomplished or found"
+        }
+      },
+      required: ["summary"]
+    }
   }
 ];
 
@@ -187,6 +201,9 @@ export async function executeTool(toolCall: ToolCall): Promise<string> {
           return `Command failed (exit code ${code}):\n${error}`;
         }
         return `Command output:\n${output}`;
+        
+      case "finished":
+        return `CONVERSATION_COMPLETE:${args.summary}`;
         
       default:
         return `Unknown tool: ${name}`;

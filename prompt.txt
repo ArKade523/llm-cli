@@ -14,6 +14,7 @@ CRITICAL WORKFLOW RULES:
 4. NEVER call 'finished' as the only response - always provide substantial content first  
 5. NEVER end your response without calling 'finished' - the conversation will hang otherwise
 6. The 'finished' tool summary should be brief - your detailed response goes in the message content
+7. Calling tools does not render anything to the user. You must summarize the information yourself if you want that information displayed to the user.
 
 IMPORTANT: When you call tools and then need to finish, structure your response like this:
 - Use your tools to gather information

@@ -132,21 +132,33 @@ export class SlashCommandHandler {
   private handleHelpCommand(): SlashCommandResult {
     return {
       response: `Available slash commands:
+
+📋 Basic Commands:
 /model [name] or /m [name] - Switch LLM model
-/models - Refresh model list from OpenAI API
+/models - Refresh model list from API
 /logs [lines] - View recent log entries (default: 20 lines)
 /clearlogs - Clear the log file
 /loglevel [level] - Set/view log level (DEBUG, INFO, WARN, ERROR)
 /help or /h - Show this help message
 
-Note: Only models that support function calling (tools) are shown, as this app uses MCP tools for file operations.
+⚙️ Configuration:
+/config help - Show detailed configuration commands
+/config show - View current configuration
+/config set <path> <value> - Set configuration value
+/config provider - Manage API providers (OpenAI, Anthropic, etc.)
+/config theme - Manage color themes
+
+💻 Commands:
+!<command> - Execute bash commands
+
+Note: Models from all enabled providers with API keys are available.
 
 Examples:
 /model gpt-4o-mini
-/m gpt-4-turbo
-/models
+/config provider key openai YOUR_KEY
+/config theme set dark
 /logs 50
-/loglevel DEBUG`
+!ls -la`
     };
   }
 }

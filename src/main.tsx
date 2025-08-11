@@ -7,8 +7,10 @@ import { Message, DEFAULT_MODELS, APP_CONFIG } from "./config.ts";
 import { logger } from "./logger.ts";
 import { SlashCommandHandler } from "./slashCommands.ts";
 import { BashCommandHandler } from "./bashCommands.ts";
+import { ConfigCommandHandler } from "./configCommands.ts";
 import { OpenAIHandler } from "./openaiHandler.ts";
 import { ModelManager } from "./modelManager.ts";
+import { configManager } from "./configManager.ts";
 
 function App() {
   const [input, setInput] = useState<string>("");
@@ -33,6 +35,7 @@ function App() {
   const [isBashCommand, setIsBashCommand] = useState<boolean>(false);
   const [availableModels, setAvailableModels] = useState<string[]>(DEFAULT_MODELS);
   const [modelsLoaded, setModelsLoaded] = useState<boolean>(false);
+  const [currentTheme, setCurrentTheme] = useState<any>(null);
   
   // Initialize managers
   const modelManager = new ModelManager();
@@ -60,21 +63,54 @@ function App() {
     messages
   );
 
-  // Load system prompt from file
+  const configCommandHandler = new ConfigCommandHandler(
+    setMessages,
+    messages
+  );
+
+  // Load configuration and initialize app
   useEffect(() => {
     const initializeApp = async () => {
-      await logger.info("AI CLI application starting", { model: currentModel });
+      await logger.info("AI CLI application starting");
       
       try {
-        const prompt = await Deno.readTextFile(APP_CONFIG.SYSTEM_PROMPT_FILE);
-        setSystemPrompt(prompt);
-        await logger.info("System prompt loaded from file", { length: prompt.length });
+        // Load configuration
+        const config = await configManager.loadConfig();
+        setCurrentModel(config.general.defaultModel);
+        setCurrentTheme(configManager.getCurrentTheme());
+        
+        // Set up config change listener
+        configManager.onConfigChange((newConfig) => {
+          setCurrentModel(newConfig.general.defaultModel);
+          setCurrentTheme(configManager.getCurrentTheme());
+        });
+        
+        // Load system prompt from configured file
+        try {
+          const prompt = await Deno.readTextFile(config.files.systemPromptFile);
+          setSystemPrompt(prompt);
+          await logger.info("System prompt loaded from file", { length: prompt.length });
+        } catch (error) {
+          await logger.warn("Could not load system prompt file, using default", { error });
+          setSystemPrompt(APP_CONFIG.DEFAULT_SYSTEM_PROMPT);
+        }
+        
+        // Load available models from config
+        const configModels = configManager.getAvailableModels();
+        if (configModels.length > 0) {
+          setAvailableModels(configModels);
+          setModelsLoaded(true);
+        } else {
+          await fetchAvailableModels();
+        }
+        
       } catch (error) {
-        await logger.warn("Could not load system prompt file, using default", { error });
+        await logger.error("Failed to initialize configuration", { error });
+        // Fall back to default initialization
+        setCurrentModel(APP_CONFIG.DEFAULT_MODEL);
         setSystemPrompt(APP_CONFIG.DEFAULT_SYSTEM_PROMPT);
+        await fetchAvailableModels();
       }
-      
-      await fetchAvailableModels();
     };
     
     initializeApp();
@@ -179,20 +215,39 @@ function App() {
 
     // Handle slash commands
     if (trimmedValue.startsWith('/')) {
-      const result = slashCommandHandler.handleCommand(trimmedValue);
-      const systemMessage: Message = {
-        id: messages.length + 2,
-        role: "assistant",
-        content: result.response,
-        timestamp: new Date(),
-      };
-      setMessages((prev: Message[]) => [...prev, systemMessage]);
-      
-      // Handle async operations
-      if (result.isAsync && result.asyncHandler) {
-        result.asyncHandler();
+      // Check if it's a config command
+      if (trimmedValue.startsWith('/config')) {
+        const result = configCommandHandler.handleCommand(trimmedValue);
+        const systemMessage: Message = {
+          id: messages.length + 2,
+          role: "assistant",
+          content: result.response,
+          timestamp: new Date(),
+        };
+        setMessages((prev: Message[]) => [...prev, systemMessage]);
+        
+        // Handle async operations
+        if (result.isAsync && result.asyncHandler) {
+          result.asyncHandler();
+        }
+        return;
+      } else {
+        // Handle other slash commands
+        const result = slashCommandHandler.handleCommand(trimmedValue);
+        const systemMessage: Message = {
+          id: messages.length + 2,
+          role: "assistant",
+          content: result.response,
+          timestamp: new Date(),
+        };
+        setMessages((prev: Message[]) => [...prev, systemMessage]);
+        
+        // Handle async operations
+        if (result.isAsync && result.asyncHandler) {
+          result.asyncHandler();
+        }
+        return;
       }
-      return;
     } else if (trimmedValue.startsWith('!')) {
       const result = bashCommandHandler.handleCommand(trimmedValue);
       const systemMessage: Message = {
@@ -252,7 +307,7 @@ function App() {
         <Box flexDirection="column" flexGrow={1}>
           {messages.map((message: Message) => (
             <Box key={message.id} marginBottom={1}>
-              <Text color={message.role === "user" ? "green" : "cyan"} bold>
+              <Text color={message.role === "user" ? (currentTheme?.userColor || "green") : (currentTheme?.assistantColor || "cyan")} bold>
                 {message.role === "user" ? "You" : "AI"}: 
               </Text>
               <Text> {message.content}</Text>
@@ -261,8 +316,8 @@ function App() {
           
           {isLoading && (
             <Box>
-              <Text color="#ff9955" bold>AI: </Text>
-              <Text color="#ff9955">
+              <Text color={currentTheme?.systemColor || "#ff9955"} bold>AI: </Text>
+              <Text color={currentTheme?.systemColor || "#ff9955"}>
                 Thinking... ({(elapsedTime / 1000).toFixed(1)}s)
               </Text>
             </Box>
@@ -272,9 +327,9 @@ function App() {
       
       <Box
         borderStyle="bold"
-        borderColor="#aa9988"
+        borderColor={currentTheme?.borderColor || "#aa9988"}
       >
-        <Text color="#ff9955"> {isSlashCommand ? '/' : isBashCommand ? '!' : '>'} </Text>
+        <Text color={currentTheme?.systemColor || "#ff9955"}> {isSlashCommand ? '/' : isBashCommand ? '!' : '>'} </Text>
         <TextInput
           value={input}
           onChange={setInput}
@@ -288,7 +343,7 @@ function App() {
       <Box
         justifyContent="center"
       >
-        <Text color="#aa9988" dimColor>
+        <Text color={currentTheme?.dimColor || "#aa9988"} dimColor>
           {statusMessage}
         </Text>
       </Box>

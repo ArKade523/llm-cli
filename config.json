@@ -1,0 +1,73 @@
+{
+  "version": "1.0.0",
+  "general": {
+    "defaultModel": "gpt-4o-mini",
+    "maxRecursionDepth": 10,
+    "maxCompletionTokens": 10000,
+    "timerUpdateInterval": 100,
+    "exitTimeout": 3000,
+    "logLevel": "INFO"
+  },
+  "providers": {
+    "openai": {
+      "enabled": true,
+      "apiKey": "",
+      "baseUrl": "https://api.openai.com/v1",
+      "models": [
+        "gpt-4o",
+        "gpt-4o-mini",
+        "gpt-4o-2024-08-06",
+        "gpt-4-turbo",
+        "gpt-4",
+        "gpt-3.5-turbo"
+      ]
+    },
+    "anthropic": {
+      "enabled": false,
+      "apiKey": "",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "models": [
+        "claude-3-5-sonnet-20241022",
+        "claude-3-opus-20240229",
+        "claude-3-haiku-20240307"
+      ]
+    },
+    "custom": {
+      "enabled": false,
+      "name": "Custom Provider",
+      "apiKey": "",
+      "baseUrl": "",
+      "models": []
+    }
+  },
+  "ui": {
+    "colorScheme": "default",
+    "themes": {
+      "default": {
+        "userColor": "green",
+        "assistantColor": "cyan",
+        "systemColor": "#ff9955",
+        "borderColor": "#aa9988",
+        "dimColor": "#aa9988"
+      },
+      "dark": {
+        "userColor": "#4CAF50",
+        "assistantColor": "#2196F3",
+        "systemColor": "#FF9800",
+        "borderColor": "#666666",
+        "dimColor": "#888888"
+      },
+      "light": {
+        "userColor": "#2E7D32",
+        "assistantColor": "#1976D2",
+        "systemColor": "#F57C00",
+        "borderColor": "#BDBDBD",
+        "dimColor": "#757575"
+      }
+    }
+  },
+  "files": {
+    "systemPromptFile": "../prompt.txt",
+    "logFile": "../ai-cli.log"
+  }
+}

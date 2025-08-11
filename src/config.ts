@@ -39,7 +39,7 @@ export const APP_CONFIG = {
   MAX_COMPLETION_TOKENS: 10000,
   TIMER_UPDATE_INTERVAL: 100,
   EXIT_TIMEOUT: 3000,
-  SYSTEM_PROMPT_FILE: "prompt.txt",
+  SYSTEM_PROMPT_FILE: "../prompt.txt",
   DEFAULT_SYSTEM_PROMPT: "You are a helpful assistant with access to tools for file operations, directory listing, and shell commands. Use tools when the user asks for file operations or system tasks."
 };
 

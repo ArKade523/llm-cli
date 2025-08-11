@@ -13,7 +13,7 @@ interface LogEntry {
 }
 
 class Logger {
-  private logFile = "ai-cli.log";
+  private logFile = "../ai-cli.log";
   private currentLogLevel = LogLevel.INFO;
 
   private formatTimestamp(): string {

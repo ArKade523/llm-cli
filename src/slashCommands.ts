@@ -142,6 +142,7 @@ export class SlashCommandHandler {
 /help or /h - Show this help message
 
 ⚙️ Configuration:
+/config - Open interactive configuration menu
 /config help - Show detailed configuration commands
 /config show - View current configuration
 /config set <path> <value> - Set configuration value
@@ -154,6 +155,7 @@ export class SlashCommandHandler {
 Note: Models from all enabled providers with API keys are available.
 
 Examples:
+/config - Open interactive setup
 /model gpt-4o-mini
 /config provider key openai YOUR_KEY
 /config theme set dark

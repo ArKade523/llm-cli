@@ -141,13 +141,13 @@ export class ConfigManager {
       this.loadEnvironmentKeys();
       
       await logger.info("Configuration loaded successfully", {
-        version: this.config.version,
-        providers: Object.keys(this.config.providers).filter(
+        version: this.config?.version,
+        providers: this.config ? Object.keys(this.config.providers).filter(
           key => this.config!.providers[key as keyof typeof this.config.providers].enabled
-        )
+        ) : []
       });
       
-      return this.config;
+      return this.config!;
     } catch (error) {
       await logger.warn("Could not load config file, creating default config", { error });
       return this.createDefaultConfig();
@@ -307,7 +307,7 @@ export class ConfigManager {
     this.config = JSON.parse(JSON.stringify(this.defaultConfig));
     this.loadEnvironmentKeys();
     await this.saveConfig();
-    return this.config;
+    return this.config!;
   }
 
   private loadEnvironmentKeys(): void {

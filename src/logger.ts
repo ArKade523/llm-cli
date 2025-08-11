@@ -95,7 +95,8 @@ class Logger {
       }
       return content;
     } catch (error) {
-      await this.warn("Failed to read log file", { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await this.warn("Failed to read log file", { error: errorMessage });
       return "Log file not found or cannot be read.";
     }
   }

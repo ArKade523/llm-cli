@@ -1,4 +1,5 @@
 import OpenAI from "npm:openai";
+import type { ChatCompletionMessageParam } from "npm:openai/resources/chat/completions";
 import { Message, APP_CONFIG } from "./config.ts";
 import { mcpTools, executeTool } from "./tools.ts";
 import { logger } from "./logger.ts";
@@ -30,11 +31,11 @@ export class OpenAIHandler {
       messages: [
         { role: "system", content: systemPrompt },
         ...messages.map((msg: Message) => ({ 
-          role: msg.role, 
+          role: msg.role as "user" | "assistant", 
           content: msg.content 
         })),
         { role: "user", content: userInput }
-      ],
+      ] as ChatCompletionMessageParam[],
       max_completion_tokens: APP_CONFIG.MAX_COMPLETION_TOKENS,
       tools: mcpTools.map(tool => ({
         type: "function" as const,
@@ -87,10 +88,10 @@ export class OpenAIHandler {
     }
 
     // Build messages with tool calls and results
-    const conversationMessages = [
+    const conversationMessages: ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
       ...messages.map((msg: Message) => ({ 
-        role: msg.role, 
+        role: msg.role as "user" | "assistant", 
         content: msg.content 
       })),
       { role: "user", content: userInput },
@@ -132,7 +133,7 @@ export class OpenAIHandler {
           role: "tool",
           content: result,
           tool_call_id: toolCall.id
-        });
+        } as ChatCompletionMessageParam);
       }
     }
 

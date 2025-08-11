@@ -8,6 +8,7 @@ import { logger } from "./logger.ts";
 import { SlashCommandHandler } from "./slashCommands.ts";
 import { BashCommandHandler } from "./bashCommands.ts";
 import { ConfigCommandHandler } from "./configCommands.ts";
+import { ConfigUI } from "./configUI.tsx";
 import { OpenAIHandler } from "./openaiHandler.ts";
 import { ModelManager } from "./modelManager.ts";
 import { configManager } from "./configManager.ts";
@@ -36,6 +37,7 @@ function App() {
   const [availableModels, setAvailableModels] = useState<string[]>(DEFAULT_MODELS);
   const [modelsLoaded, setModelsLoaded] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<any>(null);
+  const [isConfigMode, setIsConfigMode] = useState<boolean>(false);
   
   // Initialize managers
   const modelManager = new ModelManager();
@@ -217,20 +219,29 @@ function App() {
     if (trimmedValue.startsWith('/')) {
       // Check if it's a config command
       if (trimmedValue.startsWith('/config')) {
-        const result = configCommandHandler.handleCommand(trimmedValue);
-        const systemMessage: Message = {
-          id: messages.length + 2,
-          role: "assistant",
-          content: result.response,
-          timestamp: new Date(),
-        };
-        setMessages((prev: Message[]) => [...prev, systemMessage]);
-        
-        // Handle async operations
-        if (result.isAsync && result.asyncHandler) {
-          result.asyncHandler();
+        // Check if it's just "/config" without subcommands
+        const configParts = trimmedValue.slice(1).trim().split(' ');
+        if (configParts.length === 1 && configParts[0] === 'config') {
+          // Enter interactive config mode
+          setIsConfigMode(true);
+          return;
+        } else {
+          // Handle config subcommands with old system
+          const result = configCommandHandler.handleCommand(trimmedValue);
+          const systemMessage: Message = {
+            id: messages.length + 2,
+            role: "assistant",
+            content: result.response,
+            timestamp: new Date(),
+          };
+          setMessages((prev: Message[]) => [...prev, systemMessage]);
+          
+          // Handle async operations
+          if (result.isAsync && result.asyncHandler) {
+            result.asyncHandler();
+          }
+          return;
         }
-        return;
       } else {
         // Handle other slash commands
         const result = slashCommandHandler.handleCommand(trimmedValue);
@@ -298,6 +309,25 @@ function App() {
     }
   };
 
+  // Render config UI if in config mode
+  if (isConfigMode) {
+    return (
+      <ConfigUI 
+        onExit={() => setIsConfigMode(false)}
+        onConfigChange={(newConfig) => {
+          // Update local state when config changes
+          setCurrentModel(newConfig.general.defaultModel);
+          setCurrentTheme(configManager.getCurrentTheme());
+          // Refresh available models
+          const configModels = configManager.getAvailableModels();
+          if (configModels.length > 0) {
+            setAvailableModels(configModels);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <Box flexDirection="column" height="100%">
       <Box
@@ -310,7 +340,7 @@ function App() {
               <Text color={message.role === "user" ? (currentTheme?.userColor || "green") : (currentTheme?.assistantColor || "cyan")} bold>
                 {message.role === "user" ? "You" : "AI"}: 
               </Text>
-              <Text> {message.content}</Text>
+              <Text>{message.content || " "}</Text>
             </Box>
           ))}
           
@@ -329,13 +359,15 @@ function App() {
         borderStyle="bold"
         borderColor={currentTheme?.borderColor || "#aa9988"}
       >
-        <Text color={currentTheme?.systemColor || "#ff9955"}> {isSlashCommand ? '/' : isBashCommand ? '!' : '>'} </Text>
+        <Text color={currentTheme?.systemColor || "#ff9955"}>
+          {isSlashCommand ? ' / ' : isBashCommand ? ' ! ' : ' > '}
+        </Text>
         <TextInput
           value={input}
           onChange={setInput}
           onSubmit={handleSubmit}
           placeholder={isSlashCommand ? "Enter slash command..." : 
-            isBashCommand ? "Enter yor bash command..." : 
+            isBashCommand ? "Enter your bash command..." : 
             "Type your message and press Enter..."}
         />
       </Box>
@@ -344,7 +376,7 @@ function App() {
         justifyContent="center"
       >
         <Text color={currentTheme?.dimColor || "#aa9988"} dimColor>
-          {statusMessage}
+          {statusMessage || "Ready"}
         </Text>
       </Box>
     </Box>
